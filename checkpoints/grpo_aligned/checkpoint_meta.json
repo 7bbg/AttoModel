@@ -1,0 +1,5 @@
+{
+  "latest_checkpoint": "./checkpoints/grpo_aligned/grpo_final.pt",
+  "type": "grpo_aligned",
+  "steps": 100
+}

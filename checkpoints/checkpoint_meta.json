@@ -1,0 +1,7 @@
+{
+  "latest_checkpoint": "./checkpoints/ckpt_step_0000144.pt",
+  "type": "pretrain",
+  "step": 144,
+  "tokens_seen": 75497472,
+  "loss": 28.548631191253662
+}

@@ -1,0 +1,62 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "atto-model"
+version = "0.1.0"
+description = "Sub-20M Micro-Agent Language Model: Parallel Hybrid SSM-DiffAttn with Granular Sparse MoE"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "AI Research Systems & Engineering Team"}
+]
+keywords = [
+    "deep-learning",
+    "mamba-2",
+    "differential-attention",
+    "moe",
+    "mixture-of-experts",
+    "muon",
+    "language-model",
+    "grpo",
+    "rlvr",
+    "agentic-ai",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "torch>=2.0.0",
+    "numpy>=1.24.0",
+    "pyyaml>=6.0",
+    "tiktoken>=0.5.0",
+    "safetensors>=0.4.0",
+    "datasets>=2.14.0",
+    "huggingface_hub>=0.20.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "ruff>=0.1.0",
+    "black>=23.0.0",
+]
+export = [
+    "onnx>=1.14.0",
+    "onnxscript>=0.1.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["models*", "data*", "optimizers*", "training*", "inference*", "configs*"]

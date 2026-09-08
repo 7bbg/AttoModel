@@ -1,0 +1,47 @@
+# AttoModel 18.5M Parameter Configuration
+# Unified Systems Architecture: Parallel Hybrid SSM-DiffAttn with Granular Sparse MoE
+
+model:
+  vocab_size: 8192               # Compact 8k byte-level BPE vocabulary
+  d_model: 512                  # Hidden dimension
+  n_layers: 12                  # Number of hybrid transformer/SSM layers
+  max_seq_len: 4096             # Context length
+  n_meta_tokens: 6              # Number of static learnable meta-token attention sinks
+  tie_embeddings: true          # Tied input/output embedding matrices
+  rms_norm_eps: 1.0e-5          # RMSNorm epsilon
+
+ssm:
+  d_ssm: 256                    # SSM branch hidden dimension
+  d_state: 16                   # SSM state dimension (Mamba-2 SSD)
+  d_conv: 4                     # 1D causal convolution kernel size
+  expand: 1                     # Inner expansion factor for SSM
+  dt_min: 0.001                 # Minimum discretization delta
+  dt_max: 0.1                   # Maximum discretization delta
+  dt_init_floor: 1.0e-4         # Delta init floor
+
+attention:
+  d_attn: 256                   # Differential attention branch dimension
+  n_heads: 4                    # Number of differential attention heads
+  d_head: 64                    # Dimension per head (4 * 64 = 256)
+  lambda_init: 0.8              # Differential attention scalar initialization
+  share_kv_cross_layer: true    # Layers 6-11 share KV projections with layers 0-5
+  kv_share_distance: 6          # Distance between paired KV layers
+  rope_theta: 10000.0           # Rotary position embedding base
+  use_rope: true                # Enable RoPE for differential attention
+  use_mla: true                 # Multi-head Latent Attention compressive KV head (< 1.2 MB cache at C=4096)
+  d_latent_kv: 24               # Compressed KV latent dimension
+
+moe:
+  n_routed_experts: 4           # Number of routed experts
+  n_shared_experts: 1           # Number of shared experts (always active)
+  top_k: 2                      # Top-k routed experts per token
+  d_ff: 72                      # Expert hidden dimension (SwiGLU)
+  routed_scaling_factor: 1.0    # Scaling factor for routed expert outputs
+  router_jitter_noise: 0.0      # Training router jitter noise
+  aux_loss_weight: 0.01         # Load balancing loss weight (L_MoE)
+
+objectives:
+  clm_loss_weight: 1.0          # Causal language modeling loss (L_CLM)
+  fim_loss_weight: 0.25         # Fill-In-The-Middle loss (L_FIM)
+  moe_loss_weight: 0.01         # MoE load balancing loss (L_MoE)
+  diff_loss_weight: 0.005       # Differential attention regularizer loss (L_Diff)

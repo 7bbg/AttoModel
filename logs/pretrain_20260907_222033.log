@@ -1,0 +1,17 @@
+<frozen runpy>:128: RuntimeWarning: 'training.pretrain' found in sys.modules after import of package 'training', but prior to execution of 'training.pretrain'; this may result in unpredictable behaviour
+======================================================================
+ ATTO-MODEL (18.5M) CURRICULUM PRE-TRAINING
+ Device: cuda | Max Steps: 9537 | Micro-Batch: 8 | Accum: 16
+ Checkpoint Dir: ./checkpoints
+======================================================================
+ Total Parameters:  16.7M
+ Active Parameters: 14.04M (15.9% reduction)
+[*] Streaming from binary memmap dataset: ./data/curriculum_train.bin
+[*] Starting Pretraining Run on cuda
+[*] Total Target Steps: 9537 | Accumulation: 16
+Step 00001/09537 | Loss: 145.7555 | LR: 8.40e-05 | Throughput: 12,091 tok/s | Tokens: 0.52M
+Step 00010/09537 | Loss: 116.0447 | LR: 4.62e-04 | Throughput: 1,347 tok/s | Tokens: 5.24M
+Step 00020/09537 | Loss: 93.2822 | LR: 8.82e-04 | Throughput: 1,211 tok/s | Tokens: 10.49M
+Step 00030/09537 | Loss: 72.7682 | LR: 1.30e-03 | Throughput: 1,211 tok/s | Tokens: 15.73M
+Step 00040/09537 | Loss: 58.4167 | LR: 1.72e-03 | Throughput: 1,211 tok/s | Tokens: 20.97M
+Step 00050/09537 | Loss: 45.3421 | LR: 2.14e-03 | Throughput: 1,212 tok/s | Tokens: 26.21M

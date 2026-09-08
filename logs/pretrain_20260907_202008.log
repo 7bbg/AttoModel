@@ -1,0 +1,16 @@
+<frozen runpy>:128: RuntimeWarning: 'training.pretrain' found in sys.modules after import of package 'training', but prior to execution of 'training.pretrain'; this may result in unpredictable behaviour
+======================================================================
+ ATTO-MODEL (18.5M) CURRICULUM PRE-TRAINING
+ Device: cuda | Max Steps: 2 | Micro-Batch: 8 | Accum: 1
+ Checkpoint Dir: ./checkpoints
+======================================================================
+ Total Parameters:  16.7M
+ Active Parameters: 14.04M (15.9% reduction)
+[*] No binary dataset specified or found. Generating high-density synthetic curriculum...
+[*] Prepared 144 packed sequence samples.
+[*] Starting Pretraining Run on cuda
+[*] Total Target Steps: 2 | Accumulation: 1
+Step 00001/00002 | Loss: 9.0440 | LR: 2.00e-02 | Throughput: 10,670 tok/s | Tokens: 0.03M
+[*] Saved final pretrain checkpoint to: ./checkpoints/pretrain_final.pt
+[*] Pretraining Complete in 0.00 hours
+[*] Total Tokens Processed: 0.000 Billion | Avg Throughput: 11,015 tok/sec

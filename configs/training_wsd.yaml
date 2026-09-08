@@ -1,0 +1,48 @@
+# 6-Hour Single RTX PRO 6000 Execution Plan & WSD Optimizer Configuration
+# Target throughput: ~231,500 tok/sec sustained for 5.0B tokens in 21,600s (6h)
+
+training:
+  total_tokens: 5000000000       # 5.0B tokens
+  max_seq_len: 4096              # Context length C = 4096
+  micro_batch_size: 8            # Per-device micro-batch size
+  gradient_accumulation_steps: 16 # Effective batch size = 8 * 16 * 4096 = 524,288 tokens/step
+  max_steps: 9537                # ceil(5.0e9 / 524288) = 9537 steps
+  seed: 42
+  device: "cuda"                 # Overridden to "cpu" if CUDA not available
+
+precision:
+  amp_dtype: "bfloat16"          # "bfloat16", "float16", or "float32"
+  compile: true                  # torch.compile(mode="max-autotune")
+  enable_cuda_graphs: true       # Static CUDA graph capture
+  grad_clip_norm: 1.0            # Max gradient norm
+
+optimizer:
+  # 2D Matrix Parameters -> Muon Optimizer
+  muon:
+    lr: 0.02                     # Peak learning rate for Muon 2D projections
+    momentum: 0.95               # Momentum factor mu
+    nesterov: true
+    ns_steps: 5                  # 5-step Newton-Schulz iteration
+    weight_decay: 0.01
+
+  # 1D Vectors / Biases / Embeddings / Norms / SSM Parameters -> AdamW
+  adamw:
+    lr: 1.2e-3                   # Peak learning rate for AdamW (eta_peak = 1.2e-3)
+    betas: [0.9, 0.95]
+    eps: 1.0e-8
+    weight_decay: 0.1
+
+scheduler:
+  type: "wsd"                    # Warmup-Stable-Decay
+  warmup_ratio: 0.05             # 5% of training for linear warmup
+  stable_ratio: 0.75             # 75% stable plateau at peak LR
+  decay_ratio: 0.20              # 20% cooldown decay
+  decay_type: "minus_sqrt"       # (1 - sqrt(t)) annealing
+  min_lr_ratio: 0.01             # Final LR = 1% of peak LR
+
+checkpointing:
+  save_every_steps: 500
+  keep_last_k: 5
+  output_dir: "./checkpoints"
+  enable_auto_rollback: true     # Automated checkpoint rollback on loss anomaly
+  spike_threshold: 3.5           # Loss multiplier triggering auto-rollback

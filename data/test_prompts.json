@@ -1,0 +1,12 @@
+[
+  "User: Solve the following math problem step-by-step:\nConvert the point $(0,3)$ in rectangular coordinates to polar coordinates.  Enter your answer in the form $(r,\\theta),$ where $r > 0$ and $0 \\le \\theta < 2 \\pi.$\n",
+  "User: Solve the following math problem step-by-step:\nDefine\n\\[p = \\sum_{k = 1}^\\infty \\frac{1}{k^2} \\quad \\text{and} \\quad q = \\sum_{k = 1}^\\infty \\frac{1}{k^3}.\\]Find a way to write\n\\[\\sum_{j = 1}^\\infty \\sum_{k = 1}^\\infty \\frac{1}{(j + k)^3}\\]in terms of $p$ and $q.$\n",
+  "User: Solve the following math problem step-by-step:\nIf $f(x) = \\frac{3x-2}{x-2}$, what is the value of $f(-2) +f(-1)+f(0)$? Express your answer as a common fraction.\n",
+  "User: Write a python solution for: Create a function to calculate the sum of a sequence of integers.\n",
+  "User: Write a python solution for: Generate a Python code for crawling a website for a specific type of data.\n",
+  "User: Write a python solution for: Create a Python list comprehension to get the squared values of a list [1, 2, 3, 5, 8, 13].\n",
+  "User: Can you book a flight for me from New York to London?\n",
+  "User: Can you tell me the latest news headlines for the United States?\n",
+  "User: I need a new password. Can you generate one for me?\n",
+  "User: I need a new password. Can you generate one for me?\n"
+]

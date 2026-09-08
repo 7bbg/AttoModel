@@ -1,0 +1,22 @@
+[
+  "User: Solve the following math problem step-by-step:\nConvert the point $(0,3)$ in rectangular coordinates to polar coordinates.  Enter your answer in the form $(r,\\theta),$ where $r > 0$ and $0 \\le \\theta < 2 \\pi.$\n",
+  "User: Solve the following math problem step-by-step:\nDefine\n\\[p = \\sum_{k = 1}^\\infty \\frac{1}{k^2} \\quad \\text{and} \\quad q = \\sum_{k = 1}^\\infty \\frac{1}{k^3}.\\]Find a way to write\n\\[\\sum_{j = 1}^\\infty \\sum_{k = 1}^\\infty \\frac{1}{(j + k)^3}\\]in terms of $p$ and $q.$\n",
+  "User: Solve the following math problem step-by-step:\nIf $f(x) = \\frac{3x-2}{x-2}$, what is the value of $f(-2) +f(-1)+f(0)$? Express your answer as a common fraction.\n",
+  "User: Solve the following math problem step-by-step:\nHow many positive whole-number divisors does 196 have?\n",
+  "User: Solve the following math problem step-by-step:\nThe results of a cross-country team's training run are graphed below. Which student has the greatest average speed? [asy]\nfor ( int i = 1; i <= 7; ++i )\n{\n\ndraw((i,0)--(i,6));\n}\n\nfor ( int i = 1; i <= 5; ++i )\n{\n\ndraw((0,i)--(8,i));\n}\ndraw((-0.5,0)--(8,0), linewidth(1));\ndraw((0,-0.5)--(0,6), linewidth(1));\nlabel(\"$O$\", (0,0), SW);\nlabel(scale(.85)*rotate(90)*\"distance\", (0, 3), W);\nlabel(scale(.85)*\"time\", (4, 0), S);\ndot((1.25, 4.5));\nlabel(scale(.85)*\"Evelyn\", (1.25, 4.8), N);\ndot((2.5, 2.2));\nlabel(scale(.85)*\"Briana\", (2.5, 2.2), S);\ndot((4.25,5.2));\nlabel(scale(.85)*\"Carla\", (4.25, 5.2), SE);\ndot((5.6, 2.8));\nlabel(scale(.85)*\"Debra\", (5.6, 2.8), N);\ndot((6.8, 1.4));\nlabel(scale(.85)*\"Angela\", (6.8, 1.4), E);\n[/asy]\n",
+  "User: Solve the following math problem step-by-step:\nA regular hexagon can be divided into six equilateral triangles. If the perimeter of one of the triangles is 21 inches, what is the perimeter, in inches, of the regular hexagon?\n",
+  "User: Write a python solution for: Help me set up my daily to-do list!\n",
+  "User: Write a python solution for: Create a shopping list based on my inputs!\n",
+  "User: Write a python solution for: Calculate how much time I spend on my phone per week!\n",
+  "User: Write a python solution for: Help me split the bill among my friends!\n",
+  "User: Write a python solution for: Organize my movie list into genres!\n",
+  "User: Write a python solution for: Calculate the average rating of my book collection!\n",
+  "User: Can you book a flight for me from New York to London?\n",
+  "User: Can you tell me the latest news headlines for the United States?\n",
+  "User: I need a new password. Can you generate one for me?\n",
+  "User: I need a new password. Can you generate one for me?\n",
+  "User: Hi, I have a list of numbers and I need to find the median. Can you help me with that?\n",
+  "User: Hi, I need to calculate my monthly loan payment. I have a loan of $50000 with an annual interest rate of 5% and a loan term of 10 years. Can you help me with that?\n",
+  "User: Hi, I need to convert a temperature from Celsius to Fahrenheit. The temperature is 30 degrees Celsius.\n",
+  "User: Can you please order a pizza for me?\n"
+]

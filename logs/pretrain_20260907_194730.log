@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 189, in _run_module_as_main
+  File "<frozen runpy>", line 112, in _get_module_details
+  File "/workspace/AttoModel/training/__init__.py", line 3, in <module>
+    from training.grpo_rlvr import GRPOTrainer, VerifiableRewardEvaluator
+  File "/workspace/AttoModel/training/grpo_rlvr.py", line 27, in <module>
+    from data.tokenizer import AttoTokenizer, get_tokenizer
+  File "/workspace/AttoModel/data/__init__.py", line 3, in <module>
+    from data.dataset import (
+  File "/workspace/AttoModel/data/dataset.py", line 22, in <module>
+    from data.tokenizer import AttoTokenizer, get_tokenizer
+  File "/workspace/AttoModel/data/tokenizer.py", line 14, in <module>
+    import tiktoken
+ModuleNotFoundError: No module named 'tiktoken'

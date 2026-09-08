@@ -1,0 +1,288 @@
+Metadata-Version: 2.4
+Name: atto-model
+Version: 0.1.0
+Summary: Sub-20M Micro-Agent Language Model: Parallel Hybrid SSM-DiffAttn with Granular Sparse MoE
+Author: AI Research Systems & Engineering Team
+License: MIT
+Keywords: deep-learning,mamba-2,differential-attention,moe,mixture-of-experts,muon,language-model,grpo,rlvr,agentic-ai
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Science/Research
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: torch>=2.0.0
+Requires-Dist: numpy>=1.24.0
+Requires-Dist: pyyaml>=6.0
+Requires-Dist: tiktoken>=0.5.0
+Requires-Dist: safetensors>=0.4.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0.0; extra == "dev"
+Requires-Dist: ruff>=0.1.0; extra == "dev"
+Requires-Dist: black>=23.0.0; extra == "dev"
+Provides-Extra: export
+Requires-Dist: onnx>=1.14.0; extra == "export"
+Requires-Dist: onnxscript>=0.1.0; extra == "export"
+
+# AttoModel: 18.5M Parameter Micro-Agent Language Model
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![PyTorch 2.0+](https://img.shields.io/badge/PyTorch-2.0+-ee4c2c.svg)](https://pytorch.org/)
+
+**AttoModel** is an 18.5M parameter (11.2M active parameters per token) micro-agent language model designed to achieve reasoning, tool invocation, code synthesis, and structured reflection at sub-20M scale.
+
+Engineered to bypass standard scaling laws, the architecture combines:
+1. **Parallel Hybrid SSM-DiffAttn Heads**: Channels ($d_{model} = 512$) are split in parallel between a **Mamba-2 State Space Duality (SSD)** branch ($d_{ssm} = 256$) and a **Differential Attention** branch ($d_{attn} = 256$).
+2. **Cross-Layer KV Sharing**: Layers 0–5 compute and maintain KV caches, while Layers 6–12 share and reuse KV representations, restricting inference KV memory to **< 1.2 MB at context length $C = 4,096$**.
+3. **Granular Sparse Mixture-of-Experts (MoE)**: 1 Shared Expert + 4 Routed Experts with Top-2 routing (3 active experts per token).
+4. **6 Learnable Meta-Tokens**: Static learnable vectors $M \in \mathbb{R}^{6 \times 512}$ prepended to input sequences to absorb high-attention sink activations.
+5. **Muon Optimizer**: 5-step Newton-Schulz matrix orthogonalization for 2D projections combined with AdamW for 1D/SSM parameters under a **Warmup-Stable-Decay (WSD)** schedule.
+6. **Group Relative Policy Optimization (GRPO)** with **Verifiable Rewards (RLVR)** for deterministic agentic alignment.
+
+---
+
+## Architecture Overview
+
+```
+                      +-----------------------------+
+                      |   Input Tokens (B, T)       |
+                      +--------------+--------------+
+                                     |
+                      +--------------v--------------+
+                      | Tied Embedding Matrix       |
+                      |   V = 8,192, d_model = 512  |
+                      | + 6 Learnable Meta-Tokens   |
+                      +--------------+--------------+
+                                     |
+         +---------------------------v---------------------------+
+         |           12 x PARALLEL HYBRID BLOCKS                 |
+         |                                                       |
+         |   x ──► RMSNorm_1 ──┬──► Mamba-2 SSM (d=256) ──┐      |
+         |                     │                          │      |
+         |                     └──► Diff-Attn   (d=256) ──┴──► +  |
+         |                            (Shared KV Layers 6-11) │  |
+         |                                                    │  |
+         |   Residual ◄───────────────────────────────────────┘  |
+         |                                                       |
+         |   x ──► RMSNorm_2 ──► Granular Sparse MoE ─────────► +|
+         |                         (1 Shared + 4 Routed Top-2) │ |
+         |                                                     │ |
+         |   Residual ◄────────────────────────────────────────┘ |
+         +---------------------------+---------------------------+
+                                     |
+                      +--------------v--------------+
+                      | Final RMSNorm & Tied Head   |
+                      +--------------+--------------+
+                                     |
+                      +--------------v--------------+
+                      |  Next-Token Logits (B, T, V)|
+                      +-----------------------------+
+```
+
+### Table 1: Mathematical Parameter Budget
+
+| Component | Specification / Dimensions | Parameters | % Budget |
+| :--- | :--- | :--- | :--- |
+| **Tied Embeddings ($W_{emb}$)** | $V = 8,192, d_{model} = 512$ | 4.19M | 22.65% |
+| **Hybrid Layers ($L = 12$)** | Parallel Mamba-2 + DiffAttn ($d_{head} = 64$) | 6.85M | 37.02% |
+| **Granular Sparse MoE** | 1 Shared Expert + 4 Routed (Top-2, $d_{ff} = 80$) | 6.66M | 36.00% |
+| **Meta-Tokens & Norms** | 6 Meta-Tokens $\in \mathbb{R}^{6 \times 512}$, RMSNorm | 0.80M | 4.33% |
+| **Total Static Parameters** | Model Capacity Target | **18.50M** | **100.00%** |
+| **Active Parameters / Token**| 1 Shared + 2 Routed Experts | **11.20M** | **39.4% Reduction** |
+
+---
+
+## Core Innovations
+
+### 1. Differential Attention
+Eliminates background activation noise and prevents head redundancy by computing attention as the difference between two softmax distributions:
+$$\text{DiffAttn}(Q, K, V) = \left( \text{Softmax}\left(\frac{Q_1 K_1^T}{\sqrt{d_k}}\right) - \lambda \cdot \text{Softmax}\left(\frac{Q_2 K_2^T}{\sqrt{d_k}}\right) \right) V$$
+where $\lambda$ is a learnable scalar initialized to $\lambda = 0.8$.
+
+### 2. Granular Sparse Mixture-of-Experts
+Each layer contains 1 shared expert and 4 fine-grained routed experts:
+$$y_{FFN} = \text{Expert}_{shared}(x) + \sum_{i \in \text{Top-2}} G(x)_i \cdot \text{Expert}_i(x)$$
+$$G(x) = \text{Softmax}(\text{Top-2}(x \cdot W_{gate}))$$
+With auxiliary load balancing regularizer:
+$$L_{MoE} = N \sum_{i=1}^N f_i \cdot P_i$$
+
+### 3. Compound Multi-Task Loss Objective
+$$L_{Total} = L_{CLM} + 0.25 L_{FIM} + 0.01 L_{MoE} + 0.005 L_{Diff}$$
+- $L_{CLM}$: Causal next-token prediction
+- $L_{FIM}$: Fill-In-The-Middle code & structural infilling (PSM / SPM)
+- $L_{MoE}$: Expert routing balance
+- $L_{Diff}$: Attention map decorrelation
+
+### 4. Muon 2D Polar Orthogonalization Optimizer
+All 2D projection matrices are updated via 5-step Newton-Schulz orthogonalization:
+$$M_t = \mu M_{t-1} + \nabla L(W_{t-1})$$
+$$O_t = \text{NewtonSchulz}(M_t)$$
+$$W_t = W_{t-1} - \eta_t \left( 0.2 \cdot \frac{O_t}{\text{RMS}(O_t)} + \lambda_{wd} W_{t-1} \right)$$
+Combined with AdamW for 1D vectors and SSM parameters under a **Warmup-Stable-Decay (WSD)** $(1 - \sqrt{t})$ schedule.
+
+### 5. Native Agentic Control Tokens
+- `<|thought start|>` ... `<|thought end|>`: Internal chain-of-thought reasoning
+- `<|call tool|>`: Deterministic tool execution trigger
+- `<|tool response|>`: Input/API payload reception
+- `<|reflect|>`: Error self-correction loop
+
+---
+
+## Repository Structure
+
+```
+├── configs/                     # YAML configurations for architecture & training
+│   ├── model_18m.yaml           # Hyperparameters (d_model=512, L=12, Vocab=8k)
+│   ├── training_wsd.yaml        # 3-phase WSD schedule & batch size ramps
+│   └── data_mix.yaml            # Proportions for FineWeb-Edu, Synthetic, & CoT
+│
+├── data/                        # Data pipeline, tokenization, and packing
+│   ├── __init__.py
+│   ├── tokenizer.py             # Custom 8k byte-level Tiktoken BPE wrapper
+│   ├── dataset.py               # Zero-padding sequence packing & binary memmap
+│   ├── filters.py               # FastText heuristic filter & MinHash LSH
+│   └── synthetic_pipeline.py    # AST / JSON trace formatting utilities
+│
+├── models/                      # Core neural network modules
+│   ├── __init__.py
+│   ├── sub20m_model.py          # Main AttoModel class tying all blocks together
+│   ├── hybrid_block.py          # Parallel Hybrid-Head (Mamba-2 + Diff-Attn)
+│   ├── ssm_branch.py            # Mamba-2 chunked scan wrapper (O(1) state)
+│   ├── attention_branch.py      # Differential Attention & Cross-Layer KV
+│   ├── moe.py                   # Granular Sparse MoE (1 shared + 4 routed)
+│   ├── embeddings.py            # Tied input/output embeddings & learnable meta-tokens
+│   └── objectives.py            # Compound loss (L_CLM, L_FIM, L_MoE, L_Diff)
+│
+├── optimizers/                  # Training engines & optimizers
+│   ├── __init__.py
+│   ├── muon.py                  # Newton-Schulz orthogonalized 2D matrix updates
+│   └── scheduler.py             # Warmup-Stable-Decay (WSD) minus-sqrt schedule
+│
+├── training/                    # Training loop and RL alignment
+│   ├── __init__.py
+│   ├── pretrain.py              # Multi-stage curriculum trainer with rollbacks
+│   ├── grpo_rlvr.py             # Group Relative Policy Optimization + Verifiable Rewards
+│   └── precision.py             # Mixed precision (BF16/FP16) & CUDA Graph runner
+│
+├── inference/                   # Deployment and execution
+│   ├── __init__.py
+│   ├── engine.py                # High-speed Zero-Memory KV hybrid engine
+│   ├── speculator.py            # Speculative decoding draft engine for large models
+│   └── export.py                # Safetensors, ONNX, and GGUF conversion scripts
+│
+├── scripts/                     # Operational entrypoints
+│   ├── run_pretrain.sh          # Multi-GPU / Single-GPU training launch script
+│   ├── run_grpo.sh              # RLVR alignment script
+│   └── benchmark.py             # Throughput & latency testing suite
+│
+├── tests/                       # Unit tests for all components
+│   ├── test_hybrid_block.py
+│   ├── test_moe.py
+│   ├── test_differential_attention.py
+│   ├── test_ssm.py
+│   ├── test_muon.py
+│   ├── test_tokenizer.py
+│   ├── test_objectives.py
+│   ├── test_inference.py
+│   └── test_grpo.py
+│
+├── pyproject.toml
+└── requirements.txt
+```
+
+---
+
+## Quickstart
+
+### 1. Installation
+```bash
+git clone https://github.com/your-org/AttoModel.git
+cd AttoModel
+pip install -e .
+```
+
+### 2. Verify Architecture & Run Tests
+```bash
+python -m pytest
+```
+
+### 3. Run Benchmark Suite
+```bash
+python scripts/benchmark.py --batch_size 8 --seq_len 512
+```
+
+### 4. Interactive Generation & Agentic Chat
+
+#### Option A: Terminal REPL (Recommended)
+Launch the interactive terminal chat REPL with real-time reasoning (`<|thought start|>...<|thought end|>`) and tool call highlighting:
+```bash
+# Auto-detects highest-quality checkpoint (GRPO aligned -> Pretrained -> Step checkpoint):
+python scripts/chat.py
+
+# Or explicitly specify checkpoint:
+python scripts/chat.py --checkpoint ./checkpoints/grpo_final.pt
+```
+
+#### Option B: Python API with Trained / Aligned Model
+```python
+from inference.engine import InferenceEngine, GenerationConfig
+
+# Automatically loads the best trained/aligned checkpoint from ./checkpoints
+engine = InferenceEngine.from_pretrained("./checkpoints")
+print("Engine Status:", engine.get_model_status())
+
+# Multi-turn or single-shot agentic generation
+prompt = "User: Write a python function to compute Fibonacci numbers.\n<|thought start|>"
+response = engine.generate(prompt, GenerationConfig(max_new_tokens=128, temperature=0.7))
+print(response)
+```
+
+---
+
+## 6-Hour Single RTX PRO 6000 Pretraining Sprint
+
+The model is optimized to train on **5.0 Billion tokens in 5.8 hours** on a single workstation GPU (RTX PRO 6000 Ada 48GB or Blackwell 96GB):
+- **Micro-batch size**: 8
+- **Context length**: 4,096
+- **Gradient accumulation steps**: 16
+- **Effective batch size**: 524,288 tokens/step
+- **Target Throughput**: ~231,500 tokens/sec
+- **Peak VRAM**: ~2.1 GB
+- **Inference KV Footprint**: **1.125 MB (< 1.2 MB)** at $C = 4,096$ via MLA Compressive Head + Cross-Layer KV Sharing
+
+### 1. Launch Pre-Training
+```bash
+# On GPU machine:
+bash scripts/run_pretrain.sh
+
+# Or directly with Python CLI:
+python -m training.pretrain --model_config configs/model_18m.yaml --train_config configs/training_wsd.yaml
+```
+Saves `pretrain_final.pt` into `./checkpoints/`.
+
+### 2. Launch Post-Training GRPO Alignment (RLVR)
+```bash
+# Runs Group Relative Policy Optimization with verifiable execution rewards:
+bash scripts/run_grpo.sh ./checkpoints/pretrain_final.pt
+
+# Or directly with Python CLI:
+python -m training.grpo_rlvr --checkpoint ./checkpoints/pretrain_final.pt --steps 100
+```
+Saves `grpo_final.pt` into `./checkpoints/` and `./checkpoints/grpo_aligned/`.
+
+### 3. Verify Inference with Aligned Model
+```bash
+python scripts/chat.py --checkpoint ./checkpoints/grpo_final.pt
+```
+
+---
+
+## License
+MIT License.

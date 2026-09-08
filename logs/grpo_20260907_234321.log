@@ -1,0 +1,6 @@
+<frozen runpy>:128: RuntimeWarning: 'training.grpo_rlvr' found in sys.modules after import of package 'training', but prior to execution of 'training.grpo_rlvr'; this may result in unpredictable behaviour
+usage: grpo_rlvr.py [-h] [--checkpoint CHECKPOINT] [--output_dir OUTPUT_DIR]
+                    [--group_size GROUP_SIZE] [--steps STEPS] [--lr LR]
+                    [--prompts_file PROMPTS_FILE] [--kl_beta KL_BETA]
+                    [--clip_eps CLIP_EPS] [--device DEVICE]
+grpo_rlvr.py: error: unrecognized arguments: ./checkpoints/pretrain_final.pt

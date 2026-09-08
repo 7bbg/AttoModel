@@ -1,0 +1,50 @@
+<frozen runpy>:128: RuntimeWarning: 'training.pretrain' found in sys.modules after import of package 'training', but prior to execution of 'training.pretrain'; this may result in unpredictable behaviour
+======================================================================
+ ATTO-MODEL (18.5M) CURRICULUM PRE-TRAINING
+ Device: cuda | Max Steps: 9537 | Micro-Batch: 8 | Accum: 16
+ Checkpoint Dir: ./checkpoints
+======================================================================
+ Total Parameters:  16.7M
+ Active Parameters: 14.04M (15.9% reduction)
+[*] No binary dataset specified or found. Generating high-density synthetic curriculum...
+[*] Prepared 144 packed sequence samples.
+[*] Starting Pretraining Run on cuda
+[*] Total Target Steps: 9537 | Accumulation: 16
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/workspace/AttoModel/training/pretrain.py", line 390, in <module>
+    main()
+  File "/workspace/AttoModel/training/pretrain.py", line 386, in main
+    trainer.train()
+  File "/workspace/AttoModel/training/pretrain.py", line 203, in train
+    out = self.model(
+          ^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1779, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1790, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/AttoModel/models/sub20m_model.py", line 258, in forward
+    h, produced_kv, next_kv, next_ssm, next_conv, aux_info = layer(
+                                                             ^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1779, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1790, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/AttoModel/models/hybrid_block.py", line 149, in forward
+    attn_out, produced_kv, new_kv_cache, attn_info = self.attn_branch(
+                                                     ^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1779, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/venv/main/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1790, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/AttoModel/models/attention_branch.py", line 249, in forward
+    scores2 = scores2 + causal_mask.unsqueeze(0).unsqueeze(0)
+              ~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 2.01 GiB. GPU 0 has a total capacity of 94.97 GiB of which 1.97 GiB is free. Including non-PyTorch memory, this process has 92.99 GiB memory in use. Of the allocated memory 92.11 GiB is allocated by PyTorch, and 213.45 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://docs.pytorch.org/docs/stable/notes/cuda.html#optimizing-memory-usage-with-pytorch-cuda-alloc-conf)

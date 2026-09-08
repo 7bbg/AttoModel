@@ -1,0 +1,73 @@
+# 3-Phase Compressed 5.0 Billion Token Pre-Training Curriculum
+# High-Yield Synthetic Mix with Strict WSD Phase Alignment
+
+curriculum:
+  total_tokens: 5000000000       # 5.0B tokens
+
+  phases:
+    - name: "Phase 1: Syntax"
+      range_tokens: [0, 2500000000] # 0.0B -> 2.5B (50%)
+      share: 0.50
+      description: "Foundational syntax, grammar, structured facts, clean educational text"
+      lr_schedule: "warmup_to_peak"
+      sources:
+        - name: "cosmopedia_v2"
+          hf_dataset: "HuggingFaceTB/cosmopedia-v2"
+          hf_config: "cosmopedia-v2"
+          hf_split: "train"
+          text_column: "text"
+          weight: 0.60
+          type: "synthetic_textbooks"
+        - name: "fineweb_edu_high_score"
+          hf_dataset: "HuggingFaceFW/fineweb-edu"
+          hf_config: "sample-10BT"
+          hf_split: "train"
+          text_column: "text"
+          weight: 0.40
+          filter_score_threshold: 4.7
+          type: "filtered_web_edu"
+
+    - name: "Phase 2: Logic"
+      range_tokens: [2500000000, 4200000000] # 2.5B -> 4.2B (34%)
+      share: 0.34
+      description: "Formal logic, Python AST structures, JSON schemas, math proofs, algorithmic traces"
+      lr_schedule: "stable_plateau"
+      sources:
+        - name: "python_ast_json_traces"
+          hf_dataset: "flytech/python-codes-25k"
+          hf_split: "train"
+          text_column: "output"
+          weight: 0.60
+          type: "synthetic_code_traces"
+        - name: "math_proofs_and_derivations"
+          hf_dataset: "HuggingFaceH4/MATH-500"
+          hf_split: "test"
+          weight: 0.40
+          type: "formal_reasoning"
+
+    - name: "Phase 3: Agentic"
+      range_tokens: [4200000000, 5000000000] # 4.2B -> 5.0B (16%)
+      share: 0.16
+      description: "Tool invocation sequences, API calls, reflection loops, self-play CoT"
+      lr_schedule: "cooldown_decay"
+      sources:
+        - name: "tool_invocation_traces"
+          hf_dataset: "glaiveai/glaive-function-calling-v2"
+          hf_split: "train"
+          weight: 0.60
+          type: "agent_tool_calls"
+        - name: "self_play_cot"
+          weight: 0.40
+          type: "chain_of_thought"
+
+fim:
+  rate: 0.50                     # 50% of code/text samples transformed with FIM
+  spm_prob: 0.50                 # 50% Suffix-Prefix-Middle, 50% Prefix-Suffix-Middle
+  prefix_token: "<|fim_prefix|>"
+  middle_token: "<|fim_middle|>"
+  suffix_token: "<|fim_suffix|>"
+
+deduplication:
+  minhash_num_perm: 128
+  lsh_threshold: 0.85
+  ngram_size: 5
