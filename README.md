@@ -8,7 +8,7 @@
 
 Engineered to bypass standard scaling laws, the architecture combines:
 1. **Parallel Hybrid SSM-DiffAttn Heads**: Channels ($d_{\text{model}} = 512$) are split in parallel between a **Mamba-2 State Space Duality (SSD)** branch ($d_{\text{ssm}} = 256$) and a **Differential Attention** branch ($d_{\text{attn}} = 256$).
-2. **Cross-Layer KV Sharing + MLA**: Layers 0–5 compute and maintain compressed latent KV caches ($d_{\text{latent}} = 24$), while Layers 6–11 share and reuse KV representations, restricting inference KV memory to **$< 1.2$\,MB at context length $C = 4,096$**.
+2. **Cross-Layer KV Sharing + MLA**: Layers 0–5 compute and maintain compressed latent KV caches ($d_{\text{latent}} = 24$), while Layers 6–11 share and reuse KV representations, restricting inference KV memory to **< 1.2 MB at context length $C = 4,096$**.
 3. **Granular Sparse Mixture-of-Experts (MoE)**: 1 Shared Expert + 4 Routed Experts with Top-2 routing (3 active experts per token).
 4. **6 Learnable Meta-Tokens**: Static learnable vectors $M \in \mathbb{R}^{6 \times 512}$ prepended to input sequences to absorb high-attention sink activations.
 5. **Muon Optimizer**: 5-step Newton-Schulz matrix polar orthogonalization for 2D projections combined with AdamW for 1D/SSM parameters under a **Warmup-Stable-Decay (WSD)** schedule.
@@ -72,8 +72,8 @@ Engineered to bypass standard scaling laws, the architecture combines:
 ### 1. Parallel Channel-Split Hybrid Head
 Rather than sequentially interleaving attention and state-space layers, each hybrid block splits hidden state channels ($d_{\text{model}} = 512$) in parallel:
 $$x_{\text{norm}} = \text{RMSNorm}_1(x) \in \mathbb{R}^{B \times T \times 512}$$
-$$x_{\text{ssm\_in}} = x_{\text{norm}}[:, :, 0:256], \quad x_{\text{attn\_in}} = x_{\text{norm}}[:, :, 256:512]$$
-$$x_{\text{hybrid}} = \left[ \gamma_{\text{ssm}} \cdot \text{SSM}(x_{\text{ssm\_in}}) \,\|\, \gamma_{\text{attn}} \cdot \text{DiffAttn}(x_{\text{attn\_in}}) \right]$$
+$$x_{\text{ssm}} = x_{\text{norm}}[:, :, 0:256], \quad x_{\text{attn}} = x_{\text{norm}}[:, :, 256:512]$$
+$$x_{\text{hybrid}} = \left[ \gamma_{\text{ssm}} \cdot \text{SSM}(x_{\text{ssm}}) \,\|\, \gamma_{\text{attn}} \cdot \text{DiffAttn}(x_{\text{attn}}) \right]$$
 $$x = x + x_{\text{hybrid}} + \text{MoE}(\text{RMSNorm}_2(x + x_{\text{hybrid}}))$$
 
 ### 2. Continuous Mamba-2 State Space Duality (SSD)
@@ -110,7 +110,7 @@ $$\mathcal{L}_{\text{MoE}} = N_{\text{routed}} \sum_{i=1}^{N_{\text{routed}}} f_
 ### 6. Learnable Meta-Tokens & Tied Embeddings
 6 learnable vectors $M \in \mathbb{R}^{6 \times 512}$ are prepended to prompt sequences:
 $$X_{\text{input}} = \left[ M_1; M_2; \dots; M_6; x_1; x_2; \dots; x_T \right]$$
-These vectors absorb high-attention sink concentrations, stabilizing numerical representations in deeper layers. Embedding weights $W_{\text{emb}}$ are tied with the final language modeling head ($logits = F.linear(h_{\text{norm}}, W_{\text{emb}})$).
+These vectors absorb high-attention sink concentrations, stabilizing numerical representations in deeper layers. Embedding weights $W_{\text{emb}}$ are tied with the final language modeling head (`logits = F.linear(h_norm, W_emb)`).
 
 ### 7. Compound Multi-Task Loss Objective
 $$\mathcal{L}_{\text{Total}} = \mathcal{L}_{\text{CLM}} + 0.25 \mathcal{L}_{\text{FIM}} + 0.01 \mathcal{L}_{\text{MoE}} + 0.005 \mathcal{L}_{\text{Diff}}$$
@@ -312,10 +312,10 @@ The model was pre-trained, debugged, and aligned on a dedicated single-GPU works
   - **On-Board VRAM**: 97,887 MiB (96 GB) GDDR7
   - **Driver / CUDA**: NVIDIA Driver 595.84 / CUDA 12.8
   - **TDP Envelope**: 600W Peak Thermal Design Power
-- **Host Processor (CPU)**: 32-core x86_64 host processor
+- **Host Processor (CPU)**: 32-core `x86_64` host processor
 - **System Memory (RAM)**: 188.19 GB high-speed DDR5 RAM
 - **Scratch Storage**: High-throughput NVMe Solid-State Drive with zero-copy binary memory-mapped streaming (`np.memmap`)
-- **OS & Deep Learning Stack**: Linux (Ubuntu x86_64, Kernel 6.8.0), PyTorch 2.6.0+cu128, AMP (bfloat16)
+- **OS & Deep Learning Stack**: Linux (Ubuntu `x86_64`, Kernel 6.8.0), PyTorch 2.6.0+cu128, AMP (`bfloat16`)
 
 ### 5-Hour End-to-End Execution Profile
 - **Stage 1: Curriculum Pre-Training (~2.9 Hours)**:
@@ -336,13 +336,13 @@ The model was pre-trained, debugged, and aligned on a dedicated single-GPU works
 During the empirical development and stress-testing of AttoModel on single workstation GPUs, four critical systems bottlenecks were identified and resolved:
 
 1. **Differential Attention Linear Split ($O(T)$ Activation Memory)**:
-   - *Problem*: Materializing $A_1, A_2 \in \mathbb{R}^{B \times H \times T \times T}$ caused a 93\,GB CUDA Out of Memory error at $T = 4,096$.
-   - *Resolution*: Rewritten as $(A_1 V) - \lambda (A_2 V)$ using PyTorch's native `F.scaled_dot_product_attention` (FlashAttention-backed), shrinking peak memory to $< 200$\,MB.
+   - *Problem*: Materializing $A_1, A_2 \in \mathbb{R}^{B \times H \times T \times T}$ caused a 93 GB CUDA Out of Memory error at $T = 4,096$.
+   - *Resolution*: Rewritten as $(A_1 V) - \lambda (A_2 V)$ using PyTorch's native `F.scaled_dot_product_attention` (FlashAttention-backed), shrinking peak memory to $< 200$ MB.
 2. **Fast SSM Scan Custom Autograd Function**:
-   - *Problem*: Python for-loop recurrence created $>49,000$ autograd graph nodes per layer, causing an 8.6\,s backward latency per layer.
-   - *Resolution*: Implemented `_FastSSMScanFunction` with manual analytical reverse-recurrence gradients, dropping backward step time to $0.12$\,s ($67\times$ speedup).
+   - *Problem*: Python for-loop recurrence created $>49,000$ autograd graph nodes per layer, causing an 8.6 s backward latency per layer.
+   - *Resolution*: Implemented `_FastSSMScanFunction` with manual analytical reverse-recurrence gradients, dropping backward step time to $0.12$ s ($67\times$ speedup).
 3. **Streaming Incremental UTF-8 Decoding**:
-   - *Problem*: Multi-byte UTF-8 characters decoded one token at a time yielded replacement characters ($\text{\ufffd}$).
+   - *Problem*: Multi-byte UTF-8 characters decoded one token at a time yielded replacement characters (U+FFFD `\ufffd`).
    - *Resolution*: Integrated `codecs.getincrementaldecoder('utf-8')` into `InferenceEngine.generate_stream()` to preserve partial byte buffers across decoding steps.
 4. **Unprintable Control-Byte Logit Masking**:
    - *Problem*: Raw C0 control bytes (null bytes, backspaces, vertical tabs) caused terminal cursor distortion.
